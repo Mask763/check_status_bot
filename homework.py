@@ -30,7 +30,9 @@ HOMEWORK_VERDICTS = {
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = StreamHandler(stream=sys.stdout)
-formatter = logging.Formatter('%(asctime)s, %(levelname)s, %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s, %(levelname)s, %(lineno)d, %(funcName)s, %(message)s'
+)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -59,8 +61,10 @@ def message_validator(func):
         nonlocal previous_message
 
         if message != previous_message:
-            previous_message = message
             func(bot, message)
+            previous_message = message
+        else:
+            logger.debug('Полуено повторяющееся сообщение. Пропускаю.')
 
     return wrapper
 
@@ -89,7 +93,7 @@ def get_api_answer(timestamp):
     if response.status_code != HTTPStatus.OK:
         raise ValueError(
             f'Эндпоинт {ENDPOINT} с параметром {timestamp} '
-            'недоступен: {response.status_code}'
+            f'недоступен: {response.status_code}'
         )
 
     logger.debug('Запрос к эндпоинту API-сервиса успешно выполнен.')
@@ -150,7 +154,6 @@ def main():
                 timestamp = int(time.time())
             else:
                 logger.debug('Статус домашней работы не изменился.')
-                continue
         except telebot.apihelper.ApiException as error:
             logger.error(f'Сбой при отправке сообщения: {error}')
         except Exception as error:
